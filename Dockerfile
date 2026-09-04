@@ -85,7 +85,7 @@ RUN apk add --no-cache --virtual .geoip-fetch curl \
             echo "ERROR: ${db}.mmdb download failed or file too small (${size} bytes)" >&2; \
             exit 1; \
         fi; \
-        tail -c 32 /usr/local/share/geoip/${db}.mmdb | grep -q "MaxMind.com" || \
+        tail -c 200000 /usr/local/share/geoip/${db}.mmdb | LC_ALL=C grep -q "MaxMind.com" || \
             { echo "ERROR: ${db}.mmdb does not look like a valid MMDB file" >&2; exit 1; }; \
     done \
     && apk del .geoip-fetch
