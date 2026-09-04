@@ -76,6 +76,20 @@ COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
 COPY --from=builder /etc/nginx /etc/nginx
 COPY --from=builder /usr/lib/nginx/modules /usr/lib/nginx/modules
 
+RUN apk add --no-cache --virtual .geoip-fetch curl \
+    && mkdir -p /usr/local/share/geoip \
+    && for db in GeoLite2-City GeoLite2-Country; do \
+        curl -fSL --retry 3 -o /usr/local/share/geoip/${db}.mmdb "https://git.io/${db}.mmdb"; \
+        size=$(stat -c%s /usr/local/share/geoip/${db}.mmdb); \
+        if [ "$size" -lt 1000000 ]; then \
+            echo "ERROR: ${db}.mmdb download failed or file too small (${size} bytes)" >&2; \
+            exit 1; \
+        fi; \
+        tail -c 32 /usr/local/share/geoip/${db}.mmdb | grep -q "MaxMind.com" || \
+            { echo "ERROR: ${db}.mmdb does not look like a valid MMDB file" >&2; exit 1; }; \
+    done \
+    && apk del .geoip-fetch
+
 RUN mkdir -p /var/log/nginx /var/cache/nginx \
     && chown -R nginx:nginx /var/log/nginx /var/cache/nginx \
     && ln -sf /dev/stdout /var/log/nginx/access.log \
